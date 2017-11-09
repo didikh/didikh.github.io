@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Street View side-by-side</title>
+    <style>
+      html, body, .googleDiv, .esriDiv, #esriMap {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      .googleDiv{
+        float: left;
+        width: 50%;
+      }
+      .esriDiv{
+        float: right;
+        width: 50%;
+      }
+      #map, #pano {
+        height: 50%;
+        width: 100%;
+      }
+      #floating-panel {
+        z-index: 50;
+        position: absolute;
+        top: 5px;
+        right: 50%;
+        font-size: 12px;
+        text-align: left;
+        overflow: auto;
+        border: 0px solid #999;
+        background-color: #fff;
+      }
+    </style>
+    <link rel="stylesheet" href="https://js.arcgis.com/3.22/esri/css/esri.css">
+    <script src="https://js.arcgis.com/3.22/"></script>
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+  </head>
+  <body>
+    <div class='googleDiv'>
+      <div id="map"></div>
+      <div id="pano"></div>
+
+      <div id="floating-panel">
+      <table>
+        <tr>
+          <td><b>Position</b></td><td id="position-cell">&nbsp;</td>
+        </tr>
+        <tr>
+          <td><b>POV Heading</b></td><td id="heading-cell">270</td>
+        </tr>
+        <tr>
+          <td><b>POV Pitch</b></td><td id="pitch-cell">0.0</td>
+        </tr>
+        <tr>
+          <td><b>Pano ID</b></td><td id="pano-cell">&nbsp;</td>
+        </tr>
+        <table id="links_table"></table>
+      </table>
+      </div>
+    </div>
+    <div class='esriDiv'>
+      <div id='esriMap'></div>
+    </div>
+
+    <script>
+
+      var map, sv, panorama, fenway = {lat: 42.345573, lng: -71.098326}/*{lat: 106.82385169393751, lng: -6.253152075150543}*/, esriMap, center;
+      window.addEventListener('load',function(){
+        if(document.getElementById('map')){
+          google.load("maps", "3",{
+            other_params: 'key=AIzaSyAyzmEsp7u5z129u3Z0tAvdt330ec5ehG0',
+            callback:function(){
+               initialize()
+            }
+          });
+        }
+      },false);
+      function initialize() {
+        fenway = {lat: 42.345573, lng: -71.098326};
+        map = new google.maps.Map(document.getElementById('map'), {
+          center: fenway,
+          zoom: 14
+        });
+        panorama = new google.maps.StreetViewPanorama(
+            document.getElementById('pano'), {
+              position: fenway,
+              pov: {
+                heading: 140,
+                pitch: 6
+              }
+            });
+        map.setStreetView(panorama);
+        // sv = new google.maps.StreetViewService();
+        // panorama = new google.maps.StreetViewPanorama(document.getElementById('pano'));
+        // // Set the initial Street View camera to the center of the map
+        // sv.getPanorama({location: fenway, radius: 1000}, processSVData);
+        panorama.addListener('pano_changed', function() {
+          var panoCell = document.getElementById('pano-cell');
+          panoCell.innerHTML = panorama.getPano();
+        });
+
+        panorama.addListener('links_changed', function() {
+          var linksTable = document.getElementById('links_table');
+          while (linksTable.hasChildNodes()) {
+            linksTable.removeChild(linksTable.lastChild);
+          }
+          var links = panorama.getLinks();
+          for (var i in links) {
+            var row = document.createElement('tr');
+            linksTable.appendChild(row);
+            var labelCell = document.createElement('td');
+            labelCell.innerHTML = '<b>Link: ' + i + '</b>';
+            var valueCell = document.createElement('td');
+            valueCell.innerHTML = links[i].description;
+            linksTable.appendChild(labelCell);
+            linksTable.appendChild(valueCell);
+          }
+        });
+
+        panorama.addListener('position_changed', function() {
+          var positionCell = document.getElementById('position-cell');
+          positionCell.firstChild.nodeValue = panorama.getPosition() + '';
+
+          center = panorama.getPosition().toJSON();
+          recenterEsriMap(center);
+        });
+
+        panorama.addListener('pov_changed', function() {
+          var headingCell = document.getElementById('heading-cell');
+          var pitchCell = document.getElementById('pitch-cell');
+          headingCell.firstChild.nodeValue = panorama.getPov().heading + '';
+          pitchCell.firstChild.nodeValue = panorama.getPov().pitch + '';
+        });
+      }
+
+      function processSVData(data, status) {
+        if (status === 'OK') {
+          panorama.setPano(data.location.pano);
+          panorama.setPov({
+            heading: 140,
+            pitch: 6
+          });
+          panorama.setVisible(true);
+          map.setStreetView(panorama);
+          panorama.addListener('pano_changed', function() {
+          var panoCell = document.getElementById('pano-cell');
+          panoCell.innerHTML = panorama.getPano();
+        });
+        } else {
+          console.error('Street View data not found for this location.');
+          alert('Street View data not found for this location.');
+          sv.getPanorama({location: {lat: 42.345573, lng: -71.098326}, radius: 50}, processSVData);
+        }
+      }
+      function recenterEsriMap(center){
+        if(esriMap){
+          require(["esri/geometry/Point", "dojo/domReady!"], function(Point) {
+            var poin = new Point({"x": center.lng, "y": center.lat, "spatialReference": {"wkid": 4326 } });
+            esriMap.centerAt(poin);
+          });
+        }
+      }
+    </script>
+    <script type="text/javascript">
+      require(["esri/map", "esri/geometry/Point", "esri/geometry/webMercatorUtils", "esri/symbols/SimpleMarkerSymbol", "esri/Color", "esri/InfoTemplate", "esri/graphic", "dojo/domReady!"], function(Map, Point, webMercatorUtils, SimpleMarkerSymbol, Color, InfoTemplate, Graphic) {
+        esriMap = new Map("esriMap", {
+          center: [fenway.lng, fenway.lat],
+          zoom: 18,
+          basemap: "osm"
+        });
+        esriMap.on("extent-change", function(evt){
+          var c = webMercatorUtils.webMercatorToGeographic(evt.extent.getCenter());
+          if(map){
+            map.setCenter({lat: c.y, lng: c.x});
+          }
+          esriMap.graphics.clear();
+          addMarker(c);
+        });
+
+        esriMap.on("click", function(evt){
+          esriMap.centerAt(evt.mapPoint);
+          var c = webMercatorUtils.webMercatorToGeographic(evt.mapPoint);
+          panorama.setPosition({lat: c.y, lng: c.x});
+          esriMap.graphics.clear();
+          addMarker(c);
+        });
+
+        function addMarker(poin){
+          var sms = new SimpleMarkerSymbol().setStyle(
+            SimpleMarkerSymbol.STYLE_SQUARE).setColor(
+            new Color([255,0,0,0.5]));
+          var attr = {"Xcoord":poin.x,"Ycoord":poin.y,"Plant":"Center Map"};
+          var infoTemplate = new InfoTemplate("Map Center","Latitude: ${Ycoord} <br/>Longitude: ${Xcoord} <br/>Plant Name:${Plant}");
+          var graphic = new Graphic(poin,sms,attr,infoTemplate);
+          esriMap.graphics.add(graphic);
+        };
+
+      });
+    </script>
+  </body>
+</html>
