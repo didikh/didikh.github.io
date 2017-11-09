@@ -32,6 +32,12 @@
         border: 0px solid #999;
         background-color: #fff;
       }
+      #HomeButton {
+        position: absolute;
+        top: 95px;
+        left: calc(50% + 20px);
+        z-index: 50;
+      }
     </style>
     <link rel="stylesheet" href="https://js.arcgis.com/3.22/esri/css/esri.css">
     <script src="https://js.arcgis.com/3.22/"></script>
@@ -41,6 +47,7 @@
     <div class='googleDiv'>
       <div id="map"></div>
       <div id="pano"></div>
+        <div id="HomeButton"></div>
 
       <div id="floating-panel">
       <table>
@@ -164,7 +171,7 @@
       }
     </script>
     <script type="text/javascript">
-      require(["esri/map", "esri/geometry/Point", "esri/geometry/webMercatorUtils", "esri/symbols/SimpleMarkerSymbol", "esri/Color", "esri/InfoTemplate", "esri/graphic", "dojo/domReady!"], function(Map, Point, webMercatorUtils, SimpleMarkerSymbol, Color, InfoTemplate, Graphic) {
+      require(["esri/map", "esri/geometry/Point", "esri/geometry/webMercatorUtils", "esri/symbols/SimpleMarkerSymbol", "esri/Color", "esri/InfoTemplate", "esri/graphic", "esri/dijit/HomeButton", "dojo/domReady!"], function(Map, Point, webMercatorUtils, SimpleMarkerSymbol, Color, InfoTemplate, Graphic, HomeButton) {
         esriMap = new Map("esriMap", {
           center: [fenway.lng, fenway.lat],
           zoom: 18,
@@ -178,6 +185,13 @@
           esriMap.graphics.clear();
           addMarker(c);
         });
+        var homeButton = new HomeButton({
+          theme: "HomeButton",
+          map: esriMap,
+          extent: null,
+          visible: true
+        }, "HomeButton");
+        homeButton.startup();
 
         esriMap.on("click", function(evt){
           esriMap.centerAt(evt.mapPoint);
