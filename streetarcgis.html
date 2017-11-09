@@ -32,7 +32,7 @@
         border: 0px solid #999;
         background-color: #fff;
       }
-      #HomeButton {
+      #LocateButton {
         position: absolute;
         top: 95px;
         left: calc(50% + 20px);
@@ -47,7 +47,6 @@
     <div class='googleDiv'>
       <div id="map"></div>
       <div id="pano"></div>
-        <div id="HomeButton"></div>
 
       <div id="floating-panel">
       <table>
@@ -68,7 +67,9 @@
       </div>
     </div>
     <div class='esriDiv'>
-      <div id='esriMap'></div>
+      <div id='esriMap'>
+        <div id="LocateButton"></div>
+      </div>
     </div>
 
     <script>
@@ -171,11 +172,22 @@
       }
     </script>
     <script type="text/javascript">
-      require(["esri/map", "esri/geometry/Point", "esri/geometry/webMercatorUtils", "esri/symbols/SimpleMarkerSymbol", "esri/Color", "esri/InfoTemplate", "esri/graphic", "esri/dijit/HomeButton", "dojo/domReady!"], function(Map, Point, webMercatorUtils, SimpleMarkerSymbol, Color, InfoTemplate, Graphic, HomeButton) {
+      require(["esri/map", "esri/geometry/Point", "esri/geometry/webMercatorUtils", "esri/symbols/SimpleMarkerSymbol", "esri/Color", "esri/InfoTemplate", "esri/graphic", "esri/dijit/LocateButton", "dojo/domReady!"], function(Map, Point, webMercatorUtils, SimpleMarkerSymbol, Color, InfoTemplate, Graphic, LocateButton) {
         esriMap = new Map("esriMap", {
           center: [fenway.lng, fenway.lat],
           zoom: 18,
           basemap: "osm"
+        });
+        var geoLocate = new LocateButton({
+          map: esriMap,
+          highlightLocation: false
+          }, "LocateButton"
+        );
+        geoLocate.startup();
+        geoLocate.on('load', function(){
+          geoLocate.locate().then(function(evt){
+            panorama.setPosition({lat: evt.position.coords.latitude, lng: evt.position.coords.longitude});
+          });
         });
         esriMap.on("extent-change", function(evt){
           var c = webMercatorUtils.webMercatorToGeographic(evt.extent.getCenter());
@@ -185,13 +197,6 @@
           esriMap.graphics.clear();
           addMarker(c);
         });
-        var homeButton = new HomeButton({
-          theme: "HomeButton",
-          map: esriMap,
-          extent: null,
-          visible: true
-        }, "HomeButton");
-        homeButton.startup();
 
         esriMap.on("click", function(evt){
           esriMap.centerAt(evt.mapPoint);
